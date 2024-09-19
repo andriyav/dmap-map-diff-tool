@@ -1,4 +1,5 @@
 import json
+import sys
 from deepdiff import DeepDiff
 from colorama import Fore, init
 from pathlib import Path
@@ -6,8 +7,8 @@ from db_access import db_access_stage, db_access_prod
 from query import query_content_type, query_map
 
 init()
-
-mls_num = 395
+mls_num = sys.argv[1]
+# mls_num = 562
 def filter_priority_keys(diff):
     filtered_diff = {}
     for key, value in diff.items():
@@ -20,6 +21,7 @@ def filter_priority_keys(diff):
             filtered_diff[key] = value
 
     return filtered_diff
+
 
 folder_path = Path("./")
 json_files = folder_path.glob("*.json")
@@ -57,20 +59,21 @@ for content_type in content_types:
             del diff['type_changes']
         filtered_diff = filter_priority_keys(diff)
         if filtered_diff and not all(not v for v in filtered_diff.values()):
-            print(Fore.RED+"The mismatch between stage and prod detected in the class "+Fore.YELLOW+f"{content_type_ele}. "
-                  +Fore.RED+f"Please check file "+Fore.YELLOW+ f"{content_type_ele}.json"+Fore.RED+f" for reference")
+            print(
+                Fore.RED + "The mismatch between stage and prod detected in the class " + Fore.LIGHTYELLOW_EX + f"{content_type_ele}. "
+                + Fore.RED + f"Please check file " + Fore.LIGHTYELLOW_EX + f"{content_type_ele}.json" + Fore.RED + f" for reference")
             # print(diff)
             with open(f'{content_type_ele}.json', 'w') as json_file:
                 json.dump(filtered_diff, json_file, indent=4)
-        else: print(Fore.LIGHTGREEN_EX+f" {content_type_ele} - OK")
+        else:
+            print(Fore.LIGHTGREEN_EX + f" {content_type_ele} - OK")
 
 
     except:
-        print(Fore.RED+f"The source content type in stage and prod are different. {content_type_ele} is missing in prod "
+        print(
+            Fore.RED + f"The source content type in stage and prod are different. {content_type_ele} is missing in prod "
                        f" Looks like the sources is going to be migrated from RETS to API")
         break
 
     cur.close()
     con.close()
-
-
