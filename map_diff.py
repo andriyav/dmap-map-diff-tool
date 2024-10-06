@@ -8,6 +8,8 @@ from query import query_content_type, query_map
 
 init()
 mls_num = sys.argv[1]
+
+
 # mls_num = 562
 def filter_priority_keys(diff):
     filtered_diff = {}
@@ -35,7 +37,7 @@ content_types = cur.fetchall()
 print(content_types)
 cur.close()
 con.close()
-# content_types = [('ci_3',)]
+
 for content_type in content_types:
     content_type_ele = content_type[0]
     con = db_access_stage()
@@ -45,7 +47,6 @@ for content_type in content_types:
     json_stage = result_stage[0]
     cur.close()
     con.close()
-    # print(json_stage)
 
     con = db_access_prod()
     cur = con.cursor()
@@ -62,9 +63,12 @@ for content_type in content_types:
             print(
                 Fore.RED + "The mismatch between stage and prod detected in the class " + Fore.LIGHTYELLOW_EX + f"{content_type_ele}. "
                 + Fore.RED + f"Please check file " + Fore.LIGHTYELLOW_EX + f"{content_type_ele}.json" + Fore.RED + f" for reference")
-            # print(diff)
             with open(f'{content_type_ele}.json', 'w') as json_file:
                 json.dump(filtered_diff, json_file, indent=4)
+            with open(f'{content_type_ele}_stage.json', 'w') as json_file:
+                json.dump(json_prod, json_file, indent=4)
+            with open(f'{content_type_ele}_prod.json', 'w') as json_file:
+                json.dump(json_stage, json_file, indent=4)
         else:
             print(Fore.LIGHTGREEN_EX + f" {content_type_ele} - OK")
 
