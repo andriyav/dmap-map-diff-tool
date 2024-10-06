@@ -4,7 +4,7 @@ from deepdiff import DeepDiff
 from colorama import Fore, init
 from pathlib import Path
 from db_access import db_access_stage, db_access_prod
-from query import query_content_type, query_map
+from query import query_content_type, query_map, query_download
 
 init()
 mls_num = sys.argv[1]
@@ -61,8 +61,9 @@ for content_type in content_types:
         filtered_diff = filter_priority_keys(diff)
         if filtered_diff and not all(not v for v in filtered_diff.values()):
             print(
-                Fore.RED + "The mismatch between stage and prod detected in the class " + Fore.LIGHTYELLOW_EX + f"{content_type_ele}. "
-                + Fore.RED + f"Please check file " + Fore.LIGHTYELLOW_EX + f"{content_type_ele}.json" + Fore.RED + f" for reference")
+                Fore.RED + "A mismatch between maps in the stage and prod was detected in the class "
+                + Fore.LIGHTYELLOW_EX + f"{content_type_ele}. " + Fore.RED + f" Please refer to the file "
+                + Fore.LIGHTYELLOW_EX + f"{content_type_ele}.json" + Fore.RED + f" for more details.")
             with open(f'{content_type_ele}.json', 'w') as json_file:
                 json.dump(filtered_diff, json_file, indent=4)
             with open(f'{content_type_ele}_stage.json', 'w') as json_file:
@@ -81,3 +82,29 @@ for content_type in content_types:
 
     cur.close()
     con.close()
+
+con = db_access_stage()
+cur = con.cursor()
+cur.execute(query_download(mls_num))
+downloads_stage = cur.fetchall()
+
+con = db_access_prod()
+cur = con.cursor()
+cur.execute(query_download(mls_num))
+downloads_prod = cur.fetchall()
+
+cur.close()
+con.close()
+
+dict_stage = {key: value for key, value in downloads_stage}
+dict_prod = {key: value for key, value in downloads_prod}
+
+diff_config = DeepDiff(dict_stage, dict_prod)
+if diff_config:
+    with open(f'Source_configuration.json', 'w') as json_file:
+        json.dump(diff_config, json_file, indent=4)
+    print(Fore.RED + "A mismatch between the stage and prod environments was detected in the source configuration."
+          + Fore.RED + f" Please refer to the file " + Fore.LIGHTYELLOW_EX + f"Source_configuration.json" + Fore.RED +
+          f" for more details.")
+else:
+    print(Fore.LIGHTGREEN_EX + "Source configuration - OK")
